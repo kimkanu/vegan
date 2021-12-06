@@ -1,0 +1,114 @@
+
+<style>
+  html,
+  body {
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+  }
+</style>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js";
+  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCkA4lIBBTK1mnyTGC3oeMQWsIR90gQO9M",
+    authDomain: "vegan-f6129.firebaseapp.com",
+    projectId: "vegan-f6129",
+    storageBucket: "vegan-f6129.appspot.com",
+    messagingSenderId: "359979384261",
+    appId: "1:359979384261:web:489032564120ff51731fac"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+
+  const state = {
+    initialized: false,
+    files: [],
+    current: '',
+    happy: 0,
+    cute: 0,
+    safe: 0,
+  };
+
+  const emojiListEndpoint = 'https://raw.githubusercontent.com/kimkanu/vegan/main/emoji-list.txt';
+
+  function render() {
+    const el = `
+      <div
+        id="root"
+        style="
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          justify-items: center;
+          width: fit-content;
+          height: fit-content;
+          margin: auto;
+        "
+      >
+        <img src="${state.current}" style="width: 256px; min-height: 256px; margin: auto">
+        
+        ${["happy", "cute", "safe"]
+          .map(
+            (key) =>
+              `<div style="display: flex; width: fit-content; height: 48px; line-height: 48px;">
+                <div style="width: 128px;" onclick="state.${key} = 1">
+                <input type="radio" id="${key}1" name="${key}" value="1" ${state[key] === 1 ? 'checked' : ''}>
+                <label for="${key}1">${key}</label>
+              </div>
+              <div style="width: 128px;" onclick="state.${key} = 0">
+                <input type="radio" id="${key}0" name="${key}" value="0" ${state[key] === 0 ? 'checked' : ''}>
+                <label for="${key}0">neutral</label>
+              </div>
+              <div style="width: 128px;" onclick="state.${key} = -1">
+                <input type="radio" id="${key}-1" name="${key}" value="-1" ${state[key] === -1 ? 'checked' : ''}>
+                <label for="${key}-1">${key === 'happy' ? 'sad' : key === 'cute' ? 'weird' : 'unsafe (nsfw)'}</label>
+              </div>
+            </div>`
+          )
+          .join("")}
+        <button onclick="submit()">submit</button>
+        <br />
+        <button onclick="getRandom()">skip</button>
+      </div>
+    `;
+    document.body.innerHTML = el;
+  }
+
+  async function getInitialData() {
+    state.files = await fetch(emojiListEndpoint)
+      .then((response) => response.text())
+      .then((text) => text.split("\n"));
+    state.initialized = true;
+  }
+
+  function getRandom() {
+    const img = state.files.splice(Math.floor(Math.random() * state.files.length), 1);
+    state.current = img;
+    state.happy = state.cute = state.safe = 0;
+    render();
+  }
+
+  getInitialData().then(() => {
+    getRandom();
+  });
+
+  async function submit() {
+    const ref = collection(db, 'database');
+    await addDoc(ref, {
+      file: state.current,
+      happy: state.happy,
+      cute: state.cute,
+      safe: state.safe,
+    });
+    getRandom();
+  }
+
+  window.state = state;
+  window.submit = submit;
+  window.getRandom = getRandom;
+</script>
